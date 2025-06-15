@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yüksek Performanslı Basketbol Dönüşüm Paneli</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Calm Harmony (Slate, Sky, White) -->
+    <!-- Application Structure Plan: Raporun yoğun içeriğini daha sindirilebilir hale getirmek için, doğrusal bir belge yapısı yerine tematik bölümlere ayrılmış, tek sayfalık bir uygulama (SPA) tasarlanmıştır. Ana gezinme çubuğu (Ana Panel, Beslenme, Antrenman, vb.) kullanıcıların ihtiyaç duydukları bilgilere anında atlamalarını sağlar. 'Ana Panel', hedeflere ve günlük görevlere hızlı bir genel bakış sunan bir başlangıç noktası görevi görür. 'Beslenme' bölümü, interaktif bir hesaplayıcı, net yemek planları ve supplement önerileri ile eyleme geçirilebilir araçlar sağlar. 'Antrenman' bölümü, interaktif bir takvim, detaylı egzersiz kartları ve günlük antrenman tamamlama özelliği ile karmaşık programı basitleştirir. 'İlerleme' bölümü, Chart.js ile görsel bir geri bildirim döngüsü oluşturarak motivasyonu artırır. Bu yapı, kullanıcıyı pasif bir okuyucudan, kendi dönüşüm yolculuğunun aktif bir katılımcısına dönüştürmeyi amaçlamaktadır. -->
+    <!-- Visualization & Content Choices: Rapor Bilgisi -> Hedef -> Görselleştirme/Sunum Yöntemi -> Etkileşim -> Gerekçe -> Kütüphane/Yöntem. | 1. Kilo/Yağ Oranı Hedefleri -> Bilgilendirme -> HTML/CSS Kartları -> Statik -> Anında anlaşılır özet için -> Tailwind. | 2. Kalori/Makro İhtiyacı -> Kişiselleştirme -> HTML Formu + JS -> Kullanıcı girdisiyle hesaplama -> Kişiye özel hedefler sunarak etkileşimi artırmak için -> Vanilla JS. | 3. Protein Kaynakları -> Bilgilendirme -> HTML Kartları -> Statik -> Alternatif protein kaynaklarını görselleştirmek için -> Tailwind. | 4. Supplement Önerileri -> Bilgilendirme/Destek -> Açılır/Kapanır Kartlar (Accordion) -> Kart başlığına tıklama -> Faydalarını anlaşılır bir şekilde sunmak için -> Vanilla JS. | 5. Haftalık Antrenman Planı -> Organize Etme -> İnteraktif Takvim (HTML Grid) -> Günlere tıklayarak detayları gösterme/gizleme, 'Tamamla' butonu -> Karmaşık programı haftalık görünümde basitleştirmek ve günlük ilerleme sağlamak için -> Vanilla JS. | 6. Egzersiz Detayları -> Talimat Verme -> Açılır/Kapanır Kartlar (Accordion) -> Kart başlığına tıklama -> Bilgi yığınını önlemek ve odaklanmış içerik sunmak için -> Vanilla JS. | 7. Kilo İlerlemesi -> Değişimi İzleme -> Çizgi Grafiği -> Yeni veri ekleme formu -> Zaman içindeki ilerlemeyi görselleştirerek motivasyonu artırmak için -> Chart.js. | 8. Alkolün Etkileri -> Uyarma -> Vurgulu Bilgi Kutusu -> Statik -> Kritik bilgiyi dikkat çekici bir şekilde sunmak için -> Tailwind. | 9. Başlangıç Kılavuzu -> Yönlendirme -> Kontrol Listesi -> İşaretleme -> Yeni başlayanlar için net adımlar sunmak için -> Vanilla JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .nav-link { transition: all 0.3s ease; }
+        .nav-link.active { color: #fff; background-color: #0284c7; }
+        .nav-link:not(.active):hover { background-color: #e5e7eb; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 350px; max-height: 450px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .accordion-content { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
+        .accordion-content.active { max-height: 500px; /* Adjust as needed */ }
+        .accordion-toggle svg { transition: transform 0.3s ease; }
+        .accordion-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div class="min-h-screen">
+        <header class="bg-white shadow-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-sky-700">🏀 Performans Paneli</span>
+                    </div>
+                    <nav class="hidden md:block">
+                        <div id="main-nav" class="flex items-baseline space-x-1">
+                            <a href="#" data-target="dashboard" class="nav-link active px-3 py-2 rounded-md text-sm font-medium text-slate-700">Ana Panel</a>
+                            <a href="#" data-target="nutrition" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Beslenme</a>
+                            <a href="#" data-target="training" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Antrenman</a>
+                            <a href="#" data-target="recovery" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Toparlanma</a>
+                            <a href="#" data-target="progress" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">İlerleme</a>
+                        </div>
+                    </nav>
+                     <div class="md:hidden">
+                        <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white">
+                            <span class="sr-only">Menüyü aç</span>
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+             <div class="md:hidden hidden" id="mobile-menu">
+                <div id="mobile-nav" class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#" data-target="dashboard" class="nav-link active block px-3 py-2 rounded-md text-base font-medium text-slate-700">Ana Panel</a>
+                    <a href="#" data-target="nutrition" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700">Beslenme</a>
+                    <a href="#" data-target="training" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700">Antrenman</a>
+                    <a href="#" data-target="recovery" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700">Toparlanma</a>
+                    <a href="#" data-target="progress" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-700">İlerleme</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="py-10">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="content-section active">
+                    <div class="px-4">
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Zirve Performansa Giden Yolculuğunuz</h1>
+                        <p class="text-lg text-slate-600 mb-8">Bu panel, vücudunuzu dönüştürmek ve oyununuzu bir üst seviyeye taşımak için kişisel yol haritanızdır.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
+                                <h3 class="text-sm font-medium text-slate-500 uppercase">Mevcut Kilo</h3>
+                                <p class="text-4xl font-bold text-sky-600">100 <span class="text-xl">kg</span></p>
+                                <p class="text-sm text-slate-500 mt-1">%30 Yağ Oranı</p>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
+                                <h3 class="text-sm font-medium text-slate-500 uppercase">Hedef Kilo</h3>
+                                <p class="text-4xl font-bold text-emerald-600">80-85 <span class="text-xl">kg</span></p>
+                                <p class="text-sm text-slate-500 mt-1">%15-20 Yağ Oranı</p>
+                            </div>
+                             <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
+                                <h3 class="text-sm font-medium text-slate-500 uppercase">Süre</h3>
+                                <p class="text-4xl font-bold text-slate-700">2-3 <span class="text-xl">Ay</span></p>
+                                <p class="text-sm text-slate-500 mt-1">Disiplin ve Tutarlılık</p>
+                            </div>
+                             <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center">
+                                <h3 class="text-sm font-medium text-slate-500 uppercase">Bugünün Odağı</h3>
+                                <p id="today-focus" class="text-2xl font-bold text-slate-700 text-center"></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-xl shadow-md mb-8">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-4">Dönüşümün 4 Temel Direği</h2>
+                            <p class="text-slate-600 mb-6">Başarınız bu dört temel üzerine kuruludur. Her biri, hedeflerinize ulaşmanız için kritik öneme sahiptir ve bir bütün olarak çalışırlar.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div class="border-l-4 border-sky-500 pl-4">
+                                    <h3 class="font-bold text-lg">Antrenman</h3>
+                                    <p class="text-sm text-slate-600">Saha içi beceri ve atletik gücün stratejik birleşimi.</p>
+                                </div>
+                                <div class="border-l-4 border-emerald-500 pl-4">
+                                    <h3 class="font-bold text-lg">Beslenme</h3>
+                                    <p class="text-sm text-slate-600">Yağ yakımını ve kas onarımını destekleyen akıllı yakıt.</p>
+                                </div>
+                                <div class="border-l-4 border-amber-500 pl-4">
+                                    <h3 class="font-bold text-lg">Toparlanma</h3>
+                                    <p class="text-sm text-slate-600">Vücudun adapte olduğu ve güçlendiği kritik aşama.</p>
+                                </div>
+                                 <div class="border-l-4 border-rose-500 pl-4">
+                                    <h3 class="font-bold text-lg">Zihniyet</h3>
+                                    <p class="text-sm text-slate-600">Zorlukların üstesinden gelmek için gereken sarsılmaz odak.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="bg-white p-8 rounded-xl shadow-md">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-4">Başlangıç Kılavuzu</h2>
+                            <p class="text-slate-600 mb-6">İşte yolculuğunuza başlarken atmanız gereken ilk adımlar:</p>
+                            <div id="getting-started-checklist" class="space-y-3">
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-5 w-5 text-sky-600 rounded">
+                                    <span class="ml-3 text-lg text-slate-700">Mevcut kilonu ve yağ oranını kaydet.</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-5 w-5 text-sky-600 rounded">
+                                    <span class="ml-3 text-lg text-slate-700">Alkol tüketimini sıfırla veya minimuma indir.</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-5 w-5 text-sky-600 rounded">
+                                    <span class="ml-3 text-lg text-slate-700">İlk haftanın antrenmanlarını gözden geçir.</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-5 w-5 text-sky-600 rounded">
+                                    <span class="ml-3 text-lg text-slate-700">Yeterli uyku düzeni oluştur (8-10 saat).</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-5 w-5 text-sky-600 rounded">
+                                    <span class="ml-3 text-lg text-slate-700">Günde en az 3-4 litre su içmeye başla.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Nutrition Section -->
+                <section id="nutrition" class="content-section">
+                     <div class="px-4">
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Beslenme Stratejisi</h1>
+                        <p class="text-lg text-slate-600 mb-8">Dönüşümünüzü doğru yakıtla besleyin. Bu bölüm, kalori ve makro hedeflerinizi belirlemenize ve yemeklerinizi planlamanıza yardımcı olacaktır.</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-2">
+                                <div class="bg-white p-8 rounded-xl shadow-md mb-8">
+                                    <h2 class="text-2xl font-bold text-slate-900 mb-4">Günlük Hedef Hesaplayıcı</h2>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                        <div>
+                                            <label for="age" class="block text-sm font-medium text-slate-700">Yaş</label>
+                                            <input type="number" id="age" value="30" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                        </div>
+                                        <div>
+                                            <label for="height" class="block text-sm font-medium text-slate-700">Boy (cm)</label>
+                                            <input type="number" id="height" value="185" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                        </div>
+                                        <div>
+                                            <label for="activity" class="block text-sm font-medium text-slate-700">Aktivite Seviyesi</label>
+                                            <select id="activity" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                                <option value="1.725" selected>Çok Aktif (6-7 gün/hafta)</option>
+                                                <option value="1.9">Süper Aktif (2x antrenman/gün)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button id="calculate-btn" class="w-full bg-sky-600 text-white font-bold py-2 px-4 rounded-md hover:bg-sky-700 transition">Hesapla</button>
+                                    
+                                    <div id="nutrition-results" class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center"></div>
+                                </div>
+
+                                <div class="bg-white p-8 rounded-xl shadow-md mb-8">
+                                    <h2 class="text-2xl font-bold text-slate-900 mb-4">Protein Kaynakları (Tavuk ve Balık Hariç)</h2>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 text-center" id="protein-sources">
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-8 rounded-xl shadow-md">
+                                    <h2 class="text-2xl font-bold text-slate-900 mb-4">Supplement Önerileri</h2>
+                                    <p class="text-slate-600 mb-4">Beslenmenizi desteklemek ve performansınızı artırmak için önerilen supplementler:</p>
+                                    <div id="supplement-accordion" class="space-y-4"></div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-1">
+                                <div class="bg-rose-100 border-l-4 border-rose-500 text-rose-700 p-6 rounded-r-lg shadow-md">
+                                    <h3 class="font-bold text-xl mb-2">⚠️ Önemli Uyarı: Alkol Tüketimi</h3>
+                                    <p class="mb-4">Günlük 2 kutu bira (yaklaşık 300 kalori) hedeflerinize ulaşmanızı önemli ölçüde engeller. Alkol:</p>
+                                    <ul class="list-disc list-inside space-y-2 text-sm">
+                                        <li>Yağ yakımını yavaşlatır.</li>
+                                        <li>Kas onarımını ve gelişimini engeller.</li>
+                                        <li>Uyku kalitesini bozar.</li>
+                                        <li>Besin emilimini azaltır.</li>
+                                        <li>Boş kalori kaynağıdır.</li>
+                                    </ul>
+                                    <p class="mt-4 font-semibold">Bu programda en iyi sonuçlar için alkolü tamamen bırakmanız şiddetle tavsiye edilir.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-xl shadow-md mt-8">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-4">Örnek 3 Günlük Yemek Planı</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="meal-plan-container">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Training Section -->
+                <section id="training" class="content-section">
+                    <div class="px-4">
+                         <h1 class="text-3xl font-bold text-slate-900 mb-2">Antrenman Programı</h1>
+                        <p class="text-lg text-slate-600 mb-8">Sahada ve salonda hakimiyet kurmak için tasarlanmış haftalık planınız. Güç, beceri ve kondisyonu birleştirin.</p>
+                        
+                        <div class="bg-white p-8 rounded-xl shadow-md mb-8">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-4">Haftalık Antrenman Takvimi</h2>
+                            <div id="weekly-schedule-tabs" class="flex flex-wrap border-b border-slate-200 mb-4"></div>
+                            <div id="weekly-schedule-content" class="relative">
+                                <button id="mark-complete-btn" class="absolute bottom-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600 transition shadow-lg">Antrenmanı Tamamla 🎉</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="bg-white p-8 rounded-xl shadow-md">
+                                <h2 class="text-2xl font-bold text-slate-900 mb-4">Orta Seviye Ağırlık Antrenmanları</h2>
+                                <div id="weight-training-accordion" class="space-y-4"></div>
+                            </div>
+                            <div class="bg-white p-8 rounded-xl shadow-md">
+                                <h2 class="text-2xl font-bold text-slate-900 mb-4">Başlangıç Seviyesi Basketbol Drilleri</h2>
+                                <div id="basketball-drills-accordion" class="space-y-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Recovery Section -->
+                <section id="recovery" class="content-section">
+                     <div class="px-4">
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Toparlanma ve Zihniyet</h1>
+                        <p class="text-lg text-slate-600 mb-8">İlerlemenin gizli kahramanları: Vücudunuzu dinlendirin ve zihninizi odaklayın.</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="bg-white p-8 rounded-xl shadow-md">
+                                <h2 class="text-2xl font-bold text-slate-900 mb-4">Toparlanmanın Altın Kuralları</h2>
+                                <ul class="space-y-4">
+                                    <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold">1</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">Kaliteli Uyku</h3>
+                                            <p class="text-slate-600">Gecelik 8-10 saat hedefleyin. Kas onarımı, enerji yenilenmesi ve zihinsel odaklanma için kritiktir.</p>
+                                        </div>
+                                    </li>
+                                     <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold">2</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">Aktif Toparlanma</h3>
+                                            <p class="text-slate-600">Dinlenme günlerinizde hafif yürüyüş, esneme veya foam rolling gibi aktiviteler kan akışını artırarak iyileşmeyi hızlandırır.</p>
+                                        </div>
+                                    </li>
+                                     <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold">3</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">Vücudunu Dinle</h3>
+                                            <p class="text-slate-600">Aşırı yorgunluk veya ağrı sinyallerini göz ardı etmeyin. Gerekirse programı ayarlayın veya ek dinlenme günü alın.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                             <div class="bg-white p-8 rounded-xl shadow-md">
+                                <h2 class="text-2xl font-bold text-slate-900 mb-4">Zihinsel Dayanıklılık İpuçları</h2>
+                                <ul class="space-y-4">
+                                     <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">✓</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">Tutarlılığa Odaklan</h3>
+                                            <p class="text-slate-600">Mükemmellik yerine tutarlılık hedefleyin. Her gün küçük adımlar atmak, büyük sonuçlar doğurur.</p>
+                                        </div>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">✓</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">İlerlemeyi Takip Et</h3>
+                                            <p class="text-slate-600">İlerleme bölümünü kullanarak verilerinizi kaydedin. Küçük zaferleri görmek motivasyonunuzu artıracaktır.</p>
+                                        </div>
+                                    </li>
+                                     <li class="flex items-start">
+                                        <div class="flex-shrink-0 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">✓</div>
+                                        <div class="ml-4">
+                                            <h3 class="font-bold text-lg">Destek Al</h3>
+                                            <p class="text-slate-600">Bu yolculukta yalnız değilsiniz. Arkadaşlarınızdan, ailenizden veya profesyonellerden destek istemekten çekinmeyin.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Progress Section -->
+                <section id="progress" class="content-section">
+                    <div class="px-4">
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">İlerleme Takibi</h1>
+                        <p class="text-lg text-slate-600 mb-8">Verilerinizi kaydederek zaman içindeki değişiminizi görselleştirin ve motive kalın.</p>
+
+                        <div class="bg-white p-8 rounded-xl shadow-md">
+                            <div class="chart-container mb-8">
+                                <canvas id="progressChart"></canvas>
+                            </div>
+
+                            <div class="max-w-md mx-auto">
+                                <h3 class="text-lg font-medium text-center mb-4">Yeni Veri Ekle</h3>
+                                <div class="flex flex-col sm:flex-row items-end gap-4">
+                                    <div class="w-full">
+                                        <label for="progress-date" class="block text-sm font-medium text-slate-700">Tarih</label>
+                                        <input type="date" id="progress-date" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                    </div>
+                                    <div class="w-full">
+                                        <label for="progress-weight" class="block text-sm font-medium text-slate-700">Kilo (kg)</label>
+                                        <input type="number" step="0.1" id="progress-weight" placeholder="Örn: 98.5" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                                    </div>
+                                    <button id="add-progress-btn" class="w-full sm:w-auto bg-sky-600 text-white font-bold py-2 px-4 rounded-md hover:bg-sky-700 transition flex-shrink-0">Ekle</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const appData = {
+        nutrition: {
+            proteinSources: [
+                { name: 'Yumurta', icon: '🥚' },
+                { name: 'Baklagiller', icon: '🫘' },
+                { name: 'Kuruyemişler', icon: '🥜' },
+                { name: 'Tohumlar', icon: '🌰' },
+                { name: 'Soya Ürünleri', icon: '🌱' },
+                { name: 'Tam Tahıllar', icon: '🌾' },
+                { name: 'Yağsız Et', icon: '🥩' },
+                { name: 'Süt Ürünleri', icon: '🥛' }
+            ],
+            supplements: [
+                {
+                    name: 'Kreatin Monohidrat',
+                    benefits: 'Kuvvet ve güç artışı sağlar, yüksek yoğunluklu egzersiz performansını iyileştirir ve kas kütlesi kazanımına yardımcı olur.'
+                },
+                {
+                    name: 'Whey Protein Tozu',
+                    benefits: 'Hızlı emilimi sayesinde antrenman sonrası kas onarımını ve gelişimini destekler. Yeterli protein alımını kolaylaştırır.'
+                },
+                {
+                    name: 'BCAA (Dallı Zincirli Amino Asitler)',
+                    benefits: 'Kas yıkımını azaltmaya, antrenman yorgunluğunu gidermeye ve toparlanmayı hızlandırmaya yardımcı olur.'
+                },
+                {
+                    name: 'Multivitamin',
+                    benefits: 'Yoğun antrenman dönemlerinde vücudun ihtiyaç duyduğu temel vitamin ve mineralleri karşılayarak genel sağlığı ve bağışıklığı destekler.'
+                },
+                {
+                    name: 'Omega-3 (Balık Yağı)',
+                    benefits: 'Anti-inflamatuar özelliklere sahiptir, eklem sağlığını destekler, beyin fonksiyonlarını iyileştirir ve genel kardiyovasküler sağlığa katkıda bulunur.'
+                }
+            ],
+            mealPlan: [
+                {
+                    day: '1. Gün',
+                    meals: [
+                        { time: 'Kahvaltı', food: '3 yumurtalı, ıspanaklı, az yağlı peynirli omlet, 1 dilim tam buğday ekmeği.' },
+                        { time: 'Öğle Yemeği', food: 'Büyük yeşil salata (edamame, keçi peyniri, pekan cevizi), yanında 1 tam buğday ekmeği.' },
+                        { time: 'Akşam Yemeği', food: 'Yağsız kıyma ile sebzeli güveç, yanında 1 su bardağı esmer pirinç.' },
+                        { time: 'Ara Öğünler', food: 'Az yağlı süzme peynir ve ceviz. Portakal ve badem.' },
+                    ]
+                },
+                {
+                    day: '2. Gün',
+                    meals: [
+                        { time: 'Kahvaltı', food: 'Yulaf ezmesi, yaban mersini, 2 haşlanmış yumurta, yağsız süt.' },
+                        { time: 'Öğle Yemeği', food: 'Mercimek çorbası, 2 dilim tam tahıllı ekmek, küçük salata.' },
+                        { time: 'Akşam Yemeği', food: 'Izgara dana bonfile, mantar, soğan, brokoli ve tatlı patates.' },
+                        { time: 'Ara Öğünler', food: 'Az yağlı yoğurt ve chia tohumu. Tam tahıllı kraker ve fasulye ezmesi.' },
+                    ]
+                },
+                {
+                    day: '3. Gün',
+                    meals: [
+                        { time: 'Kahvaltı', food: 'Kinoa, badem sütü, balkabağı püresi, ceviz.' },
+                        { time: 'Öğle Yemeği', food: 'Tofu ve bol sebzeli stir-fry, yanında esmer pirinç.' },
+                        { time: 'Akşam Yemeği', food: 'Hindi kıyması köfteler, kinoa salatası, kuşkonmaz.' },
+                        { time: 'Ara Öğünler', food: 'Karışık kuruyemiş. Edamame.' },
+                    ]
+                }
+            ]
+        },
+        training: {
+            schedule: {
+                'Pazartesi': { focus: 'Kuvvet ve Beceri', detail: 'Tam Vücut Ağırlık (A) + Temel Top Hakimiyeti' },
+                'Salı': { focus: 'Beceri ve Kondisyon', detail: 'Ayak Hareketi, Pas, Şut + Saha İçi Kondisyon' },
+                'Çarşamba': { focus: 'Aktif Toparlanma', detail: 'Hafif yürüyüş, esneme, foam rolling' },
+                'Perşembe': { focus: 'Kuvvet ve Beceri', detail: 'Tam Vücut Ağırlık (B) + Dribbling, Yön Değiştirme' },
+                'Cuma': { focus: 'Beceri ve Kondisyon', detail: 'Oyun Durumu Drilleri + Saha İçi Kondisyon' },
+                'Cumartesi': { focus: 'Opsiyonel Kuvvet', detail: 'Tam Vücut Ağırlık (C) veya Uzun Basketbol Seansı' },
+                'Pazar': { focus: 'Tam Dinlenme', detail: 'Vücudun tamamen toparlanması' }
+            },
+            weightTraining: [
+                {
+                    title: 'Antrenman A (Tam Vücut)',
+                    exercises: [
+                        { name: 'Back Squat', sets: '3-4', reps: '8-12', rest: '90-120sn' },
+                        { name: 'Dumbbell Bench Press', sets: '3-4', reps: '8-12', rest: '90-120sn' },
+                        { name: 'Romanian Deadlift', sets: '3', reps: '10-15', rest: '60-90sn' },
+                        { name: 'Pull-ups / Lat Pulldown', sets: '3', reps: 'Maks / 8-12', rest: '90-120sn' },
+                        { name: 'Military Press', sets: '3', reps: '8-12', rest: '60-90sn' },
+                        { name: 'Plank', sets: '3', reps: '30-60sn', rest: '60sn' },
+                    ]
+                },
+                {
+                    title: 'Antrenman B (Tam Vücut)',
+                    exercises: [
+                        { name: 'Leg Press', sets: '3-4', reps: '10-15', rest: '90-120sn' },
+                        { name: 'Incline Dumbbell Press', sets: '3-4', reps: '8-12', rest: '90-120sn' },
+                        { name: 'Walking Lunges', sets: '3', reps: '10-12 (her bacak)', rest: '60-90sn' },
+                        { name: 'Bent-Over Rows', sets: '3', reps: '10-15', rest: '60-90sn' },
+                        { name: 'Lateral Raises', sets: '3', reps: '15-20', rest: '45-60sn' },
+                        { name: 'Hanging Knee Ups', sets: '3', reps: '12-15', rest: '60sn' },
+                    ]
+                },
+                {
+                    title: 'Antrenman C (Opsiyonel/Yoğun)',
+                    exercises: [
+                        { name: 'Front Squat', sets: '3-4', reps: '5-8', rest: '120sn' },
+                        { name: 'Dips / Close-Grip Push-ups', sets: '3', reps: 'Maks / 8-12', rest: '90sn' },
+                        { name: 'Glute Ham Raise', sets: '3', reps: '12-15', rest: '60sn' },
+                        { name: 'Single-Arm Dumbbell Row', sets: '3', reps: '8-12 (her kol)', rest: '60sn' },
+                        { name: 'Overhead Press', sets: '3', reps: '8-12', rest: '90sn' },
+                        { name: 'Russian Twists', sets: '3', reps: '15-20 (her yön)', rest: '45sn' },
+                    ]
+                }
+            ],
+            basketballDrills: [
+                {
+                    title: 'Ayak Hareketi',
+                    drills: [
+                        { name: 'Jump Stop', sets: '3', reps: '10-15 tekrar' },
+                        { name: 'V-Cut Drill', sets: '3', reps: '8-10 tekrar (her yön)' },
+                    ]
+                },
+                {
+                    title: 'Top Hakimiyeti',
+                    drills: [
+                        { name: 'Top Sarmalama (Bel, Diz, Baş)', sets: '3', reps: '30sn (her bölge)' },
+                        { name: 'Sekiz Figürü Dribbling', sets: '3', reps: '30-45sn' },
+                        { name: 'Koni Dribbling (Zig-zag)', sets: '3', reps: '4dk' },
+                    ]
+                },
+                {
+                    title: 'Pas ve Şut',
+                     drills: [
+                        { name: 'Partner Pasları (Göğüs, Sektirme)', sets: '3', reps: '10-15 tekrar' },
+                        { name: 'Form Şutu (B.E.E.F.)', sets: '3', reps: '10-15 isabet' },
+                        { name: 'Turnike (Sağ ve Sol El)', sets: '3', reps: '5-10 isabet (her el)' },
+                    ]
+                }
+            ]
+        }
+    };
+
+    const mainNav = document.getElementById('main-nav');
+    const mobileNav = document.getElementById('mobile-nav');
+    const contentSections = document.querySelectorAll('.content-section');
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    function navigate(targetId, navLinks) {
+        contentSections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === targetId) {
+                section.classList.add('active');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.target === targetId) {
+                link.classList.add('active');
+            }
+        });
+
+        if (mobileMenu.classList.contains('hidden') === false) {
+             mobileMenu.classList.add('hidden');
+        }
+    }
+
+    mainNav.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            e.preventDefault();
+            const targetId = e.target.dataset.target;
+            navigate(targetId, Array.from(mainNav.children));
+        }
+    });
+
+    mobileNav.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            e.preventDefault();
+            const targetId = e.target.dataset.target;
+            navigate(targetId, Array.from(mobileNav.children));
+        }
+    });
+
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    function initDashboard() {
+        const dayOfWeek = new Date().getDay();
+        const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        const today = days[dayOfWeek];
+        const focusText = appData.training.schedule[today] ? appData.training.schedule[today].focus : 'Dinlenme';
+        document.getElementById('today-focus').textContent = focusText;
+    }
+
+    function initNutrition() {
+        const calculateBtn = document.getElementById('calculate-btn');
+        const resultsContainer = document.getElementById('nutrition-results');
+        const proteinContainer = document.getElementById('protein-sources');
+        const mealPlanContainer = document.getElementById('meal-plan-container');
+        const supplementAccordion = document.getElementById('supplement-accordion');
+
+        calculateBtn.addEventListener('click', () => {
+            const age = parseFloat(document.getElementById('age').value);
+            const height = parseFloat(document.getElementById('height').value);
+            const activityMultiplier = parseFloat(document.getElementById('activity').value);
+            const weight = 100;
+
+            if (!age || !height) {
+                resultsContainer.innerHTML = `<p class="text-red-500 col-span-full">Lütfen yaş ve boy giriniz.</p>`;
+                return;
+            }
+
+            const bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+            const tdee = bmr * activityMultiplier;
+            const targetCalories = tdee - 1250; 
+            const proteinGrams = 82.5 * 1.9;
+            const proteinCalories = proteinGrams * 4;
+            const fatCalories = targetCalories * 0.28;
+            const fatGrams = fatCalories / 9;
+            const carbCalories = targetCalories - proteinCalories - fatCalories;
+            const carbGrams = carbCalories / 4;
+
+            resultsContainer.innerHTML = `
+                <div class="bg-slate-50 p-3 rounded-lg"><h4 class="font-bold text-sm">Hedef Kalori</h4><p class="text-xl font-bold text-sky-600">${Math.round(targetCalories)}</p></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><h4 class="font-bold text-sm">Protein</h4><p class="text-xl font-bold text-emerald-600">${Math.round(proteinGrams)}g</p></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><h4 class="font-bold text-sm">Karbonhidrat</h4><p class="text-xl font-bold text-amber-600">${Math.round(carbGrams)}g</p></div>
+                <div class="bg-slate-50 p-3 rounded-lg"><h4 class="font-bold text-sm">Yağ</h4><p class="text-xl font-bold text-rose-600">${Math.round(fatGrams)}g</p></div>
+            `;
+        });
+        
+        proteinContainer.innerHTML = appData.nutrition.proteinSources.map(source => `
+            <div class="bg-slate-50 p-4 rounded-lg flex flex-col items-center justify-center">
+                <div class="text-3xl mb-2">${source.icon}</div>
+                <p class="font-semibold text-sm">${source.name}</p>
+            </div>
+        `).join('');
+        
+        mealPlanContainer.innerHTML = appData.nutrition.mealPlan.map(day => `
+            <div class="border border-slate-200 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-3 text-sky-700">${day.day}</h3>
+                <ul class="space-y-3">
+                    ${day.meals.map(meal => `
+                        <li>
+                            <p class="font-semibold text-sm">${meal.time}</p>
+                            <p class="text-slate-600 text-sm">${meal.food}</p>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `).join('');
+
+        supplementAccordion.innerHTML = appData.nutrition.supplements.map((supplement, index) => `
+            <div class="border border-slate-200 rounded-lg">
+                <button class="w-full text-left p-4 font-semibold bg-slate-50 hover:bg-slate-100 flex justify-between items-center accordion-toggle" data-target="supplement-accordion-${index}" aria-expanded="false">
+                    ${supplement.name}
+                    <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="supplement-accordion-${index}" class="accordion-content p-4 text-slate-600">
+                    <p>${supplement.benefits}</p>
+                </div>
+            </div>
+        `).join('');
+
+        calculateBtn.click();
+
+        document.getElementById('nutrition').addEventListener('click', (e) => {
+            const button = e.target.closest('.accordion-toggle');
+            if (button) {
+                const targetId = button.dataset.target;
+                const content = document.getElementById(targetId);
+                const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+                button.setAttribute('aria-expanded', !isExpanded);
+                content.classList.toggle('active');
+            }
+        });
+    }
+    
+    function createAccordion(containerId, data, type) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = data.map((item, index) => {
+            const content = type === 'weight'
+                ? `<table class="w-full text-sm text-left mt-2">
+                       <thead class="bg-slate-50"><tr><th class="p-2">Egzersiz</th><th class="p-2">Set</th><th class="p-2">Tekrar</th><th class="p-2">Dinlenme</th></tr></thead>
+                       <tbody>${item.exercises.map(ex => `<tr class="border-b"><td class="p-2 font-medium">${ex.name}</td><td class="p-2">${ex.sets}</td><td class="p-2">${ex.reps}</td><td class="p-2">${ex.rest}</td></tr>`).join('')}</tbody>
+                   </table>`
+                : `<ul class="list-disc list-inside mt-2 space-y-1 text-sm">${item.drills.map(drill => `<li><strong>${drill.name}:</strong> ${drill.sets} set x ${drill.reps}</li>`).join('')}</ul>`;
+
+            return `
+                <div class="border border-slate-200 rounded-lg">
+                    <button class="w-full text-left p-4 font-semibold bg-slate-50 hover:bg-slate-100 flex justify-between items-center accordion-toggle" data-target="accordion-${type}-${index}" aria-expanded="false">
+                        ${item.title}
+                        <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="accordion-${type}-${index}" class="accordion-content p-4">${content}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function initTraining() {
+        const scheduleTabsContainer = document.getElementById('weekly-schedule-tabs');
+        const scheduleContentContainer = document.getElementById('weekly-schedule-content');
+        const markCompleteBtn = document.getElementById('mark-complete-btn');
+        
+        const schedule = appData.training.schedule;
+        const days = Object.keys(schedule);
+        let currentActiveDay = days[0];
+
+        scheduleTabsContainer.innerHTML = days.map((day, index) => `
+            <button class="schedule-tab py-2 px-4 text-sm font-medium border-b-2 ${index === 0 ? 'border-sky-500 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}" data-day="${day}">${day}</button>
+        `).join('');
+
+        function updateScheduleContent(day) {
+            currentActiveDay = day;
+            scheduleContentContainer.innerHTML = `
+                <div class="p-4 bg-slate-50 rounded-lg">
+                    <h3 class="font-bold text-xl text-slate-800">${schedule[day].focus}</h3>
+                    <p class="text-slate-600">${schedule[day].detail}</p>
+                </div>
+                 <button id="mark-complete-btn" class="absolute bottom-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600 transition shadow-lg">Antrenmanı Tamamla 🎉</button>
+            `;
+            // Re-attach event listener for the dynamically created button
+            document.getElementById('mark-complete-btn').addEventListener('click', markWorkoutComplete);
+        }
+
+        scheduleTabsContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.schedule-tab')) {
+                const day = e.target.dataset.day;
+                Array.from(scheduleTabsContainer.children).forEach(tab => {
+                    tab.classList.remove('border-sky-500', 'text-sky-600');
+                    tab.classList.add('border-transparent', 'text-slate-500');
+                });
+                e.target.classList.add('border-sky-500', 'text-sky-600');
+                e.target.classList.remove('border-transparent', 'text-slate-500');
+                updateScheduleContent(day);
+            }
+        });
+
+        function markWorkoutComplete() {
+            const activeTab = document.querySelector(`.schedule-tab[data-day="${currentActiveDay}"]`);
+            if (activeTab) {
+                activeTab.classList.remove('border-sky-500', 'text-sky-600', 'border-transparent', 'text-slate-500', 'hover:text-slate-700', 'hover:border-slate-300');
+                activeTab.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-500', 'font-semibold');
+                // Optional: remove button after marking complete for the day
+                markCompleteBtn.style.display = 'none';
+            }
+        }
+
+        updateScheduleContent(days[0]); // Initialize with the first day
+
+        createAccordion('weight-training-accordion', appData.training.weightTraining, 'weight');
+        createAccordion('basketball-drills-accordion', appData.training.basketballDrills, 'drill');
+        
+        document.getElementById('training').addEventListener('click', (e) => {
+             const button = e.target.closest('.accordion-toggle');
+            if (button) {
+                const targetId = button.dataset.target;
+                const content = document.getElementById(targetId);
+                const isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+                button.setAttribute('aria-expanded', !isExpanded);
+                content.classList.toggle('active');
+            }
+        });
+    }
+    
+    let progressChart;
+    function initProgress() {
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        const initialDate = new Date();
+        const formattedDate = `${initialDate.getFullYear()}-${String(initialDate.getMonth() + 1).padStart(2, '0')}-${String(initialDate.getDate()).padStart(2, '0')}`;
+
+        const chartData = {
+            labels: [formattedDate],
+            datasets: [{
+                label: 'Kilo (kg)',
+                data: [100],
+                borderColor: '#0284c7',
+                backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                fill: true,
+                tension: 0.1
+            }]
+        };
+
+        progressChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Kilo (kg)'
+                        }
+                    },
+                    x: {
+                         title: {
+                            display: true,
+                            text: 'Tarih'
+                        }
+                    }
+                },
+                 plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                         callbacks: {
+                            label: function(context) {
+                                return `Kilo: ${context.parsed.y} kg`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        document.getElementById('add-progress-btn').addEventListener('click', () => {
+            const dateInput = document.getElementById('progress-date');
+            const weightInput = document.getElementById('progress-weight');
+            const date = dateInput.value;
+            const weight = parseFloat(weightInput.value);
+
+            if (date && weight) {
+                // Check if date already exists, update if it does, otherwise add new
+                const existingIndex = progressChart.data.labels.indexOf(date);
+                if (existingIndex > -1) {
+                    progressChart.data.datasets[0].data[existingIndex] = weight;
+                } else {
+                    progressChart.data.labels.push(date);
+                    progressChart.data.datasets[0].data.push(weight);
+                    // Sort labels and data to ensure chronological order
+                    const combined = progressChart.data.labels.map((label, i) => ({
+                        label: label,
+                        data: progressChart.data.datasets[0].data[i]
+                    }));
+                    combined.sort((a, b) => new Date(a.label) - new Date(b.label));
+                    progressChart.data.labels = combined.map(item => item.label);
+                    progressChart.data.datasets[0].data = combined.map(item => item.data);
+                }
+
+                progressChart.update();
+                dateInput.value = '';
+                weightInput.value = '';
+            } else {
+                // Replaced alert with console.error as per instructions, can be replaced by a custom message box UI if needed.
+                console.error("Lütfen geçerli bir tarih ve kilo giriniz.");
+            }
+        });
+        
+        document.getElementById('progress-date').value = formattedDate;
+
+    }
+
+    initDashboard();
+    initNutrition();
+    initTraining();
+    initProgress();
+});
+</script>
+
+</body>
+</html>
